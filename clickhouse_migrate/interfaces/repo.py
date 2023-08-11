@@ -32,10 +32,12 @@ class MigrationRepo:
         on each of the provided datrabase instances or not
         :param migration_meta: Meta that has to be written to the migrate table
         """
-        if replicated:
-            execute_for_replicas(query=sql)
-        else:
-            execute(query=sql)
+        statements = cls.script_to_statements(script=sql)
+        for statement in statements:
+            if replicated:
+                execute_for_replicas(query=statement)
+            else:
+                execute(query=statement)
         cls.insert_applied_migration_version(migration_meta=migration_meta)
 
     @staticmethod
@@ -55,3 +57,13 @@ class MigrationRepo:
             MigrationMeta(migration_id=record[0], migration_hash=record[1], filename=record[2])
             for record in execute(query=query)
         ]
+
+    @classmethod
+    def script_to_statements(cls, script: str) -> List[str]:
+        statements = []
+        for statement in script.split(";"):
+            statement = statement.strip()
+            if statement:
+                statements.append(statement)
+
+        return statements

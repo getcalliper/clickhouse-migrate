@@ -1,5 +1,6 @@
 import glob
 import importlib.util
+import inspect
 import re
 from datetime import datetime, timezone
 from hashlib import md5
@@ -68,12 +69,13 @@ from clickhouse_migrate import Step
         migration_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(migration_module)
 
+        code_source = inspect.getsource(migration_module)
         migration_list: List[Step] = migration_module.__getattribute__(self.MIGRATIONS_VARIABLE)
         for idx, migration in enumerate(migration_list):
             filename = self.get_filename(file_path=file_path)
             migration_meta = MigrationMeta(
                 migration_id=f"{filename}_{idx}",
-                migration_hash=md5(re.sub(r"\s+", "", migration.sql).encode("utf8")).hexdigest(),
+                migration_hash=md5(re.sub(r"\s+", "", code_source).encode("utf8")).hexdigest(),
                 filename=filename,
             )
             if self.is_applied_migration(migration_meta):
